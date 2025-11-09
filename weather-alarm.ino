@@ -6,7 +6,7 @@
 #include "buzzer.h"
 #include <Arduino.h>
 #include "pins.h"
-#include "http.h"
+#include "weather.h"
 
 
 
@@ -37,7 +37,6 @@ void loop() {
   // read button
   if (encoder.wasClicked()) {
     Serial.println("Click");
-    fetchWeather();
   }
   if(millis()%60000 == 0){
     updateTime();
@@ -47,6 +46,11 @@ void loop() {
   int m = getMinutes();
   int ah = 4;
   int am = 17;
+
+  if (millis() - lastFetch > 1 * 60 * 1000){
+    weatherValid = false;
+    fetchWeather();
+  }
     
     
 

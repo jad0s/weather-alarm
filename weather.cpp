@@ -1,6 +1,13 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
+float cachedTemp = NAN;
+float cachedRain = NAN;
+float cachedPrecip = NAN;
+bool weatherValid = false;
+unsigned long lastFetch = 0;
+
+
 const float LAT = 49.686956;
 const float LON = 18.351402;
 
@@ -32,6 +39,12 @@ void fetchWeather(){
     float rain = doc["current"]["rain"];
     float precipitation = doc["current"]["precipitation"];
 
+    cachedTemp = temp;
+    cachedRain = rain;
+    cachedPrecip = precipitation;
+    lastFetch = millis();
+    weatherValid = true;
+
     Serial.println("Parsed values:");
     Serial.print("Temperature: ");
     Serial.println(temp);
@@ -44,6 +57,7 @@ void fetchWeather(){
   }else {
     Serial.print("HTTP Error: ");
     Serial.println(code);
+    weatherValid = false;
   }
 
   http.end();
