@@ -6,6 +6,7 @@
 #include "buzzer.h"
 #include <Arduino.h>
 #include "pins.h"
+#include "http.h"
 
 
 
@@ -19,6 +20,7 @@ void setup() {
   encoder.begin();
   display.clearDisplay();
   display.display();
+  fetchWeather();
 }
 
 void loop() {
@@ -35,6 +37,7 @@ void loop() {
   // read button
   if (encoder.wasClicked()) {
     Serial.println("Click");
+    fetchWeather();
   }
   if(millis()%60000 == 0){
     updateTime();

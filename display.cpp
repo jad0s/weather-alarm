@@ -1,5 +1,6 @@
 #include "display.h"
 #include <Wire.h>
+#include "http.h"
 
 
 #define SCREEN_TIMEOUT 5000
@@ -51,6 +52,7 @@ void displayTouched(){
     display.ssd1306_command(SSD1306_DISPLAYON);
     screenOn = true;
   }
+  fetchWeather();
 }
 
 void displayUpdate(){
