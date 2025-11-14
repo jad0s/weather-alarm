@@ -6,6 +6,7 @@
 #include "buzzer.h"
 #include <Arduino.h>
 #include "pins.h"
+#include "weather.h"
 
 
 
@@ -19,6 +20,7 @@ void setup() {
   encoder.begin();
   display.clearDisplay();
   display.display();
+  fetchWeather();
 }
 
 void loop() {
@@ -44,6 +46,11 @@ void loop() {
   int m = getMinutes();
   int ah = 4;
   int am = 17;
+
+  if (millis() - lastFetch > 1 * 60 * 1000){
+    weatherValid = false;
+    fetchWeather();
+  }
     
     
 

@@ -1,5 +1,6 @@
 #include "display.h"
 #include <Wire.h>
+#include "weather.h"
 
 
 #define SCREEN_TIMEOUT 5000
@@ -37,11 +38,23 @@ void updateDisplayTime(int hours, int minutes) {
   }
     display.clearDisplay();           // clear previous time
     display.setTextSize(3);
-    display.setCursor(0, 20);
+    display.setCursor(0, 0);
 
     char buf[6];
     snprintf(buf, sizeof(buf), "%02d:%02d", hours, minutes);
     display.println(buf);
+    display.setTextSize(2);
+    display.setCursor(0, 30);         // adjust vertical position
+
+    if(weatherValid){
+        char weatherBuf[32];
+        snprintf(weatherBuf, sizeof(weatherBuf),
+                 "%.1fC \n%.1fmm/h",
+                 cachedTemp, cachedRain);
+        display.println(weatherBuf);
+    } else {
+        display.println("Weather N/A");
+    }
     display.display();
 }
 
