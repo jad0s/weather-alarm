@@ -4,6 +4,7 @@
 #include "pins.h"
 
 extern Adafruit_SSD1306 display;
+extern bool screenOn;
 
 void initDisplay();
 void displayLogo();
