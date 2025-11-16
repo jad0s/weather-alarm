@@ -1,11 +1,14 @@
 #include "display.h"
 #include <Wire.h>
 #include "weather.h"
+#include "ui.h"
+#include "systemtime.h"
 
 
 #define SCREEN_TIMEOUT 5000
 static unsigned long lastTouch=0;
-static bool screenOn = true;
+
+bool screenOn = true;
 
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
@@ -32,7 +35,7 @@ void displayLogo() {
     display.display(); 
 }
 
-void updateDisplayTime(int hours, int minutes) {
+/*void updateDisplayTime() {
   if(!screenOn){
     return;
   }
@@ -56,13 +59,14 @@ void updateDisplayTime(int hours, int minutes) {
         display.println("Weather N/A");
     }
     display.display();
-}
+}*/
 
 void displayTouched(){
   lastTouch = millis();
   if (!screenOn){
     display.ssd1306_command(SSD1306_DISPLAYON);
     screenOn = true;
+    screenDirty = true;
   }
 }
 

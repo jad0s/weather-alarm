@@ -8,11 +8,5 @@
 // Initialize Wi-Fi and NTP
 void initWiFi();
 
-// Call every loop to update time
-void updateTime();
-
-// Get current hours and minutes
-int getHours();
-int getMinutes();
 
 #endif
