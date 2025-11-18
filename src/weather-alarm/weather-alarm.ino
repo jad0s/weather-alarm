@@ -9,12 +9,34 @@
 #include "weather.h"
 #include "systemtime.h"
 #include "ui.h"
+#include "icons.h"
 
+
+void animationTask(void * parameter){
+  int phase = 0;
+  while(loading){
+    display.clearDisplay();
+    switch(phase){
+      case 0: display.drawBitmap(0,0,loading_0,128,64,1); break;
+      case 1: display.drawBitmap(0,0,loading_1,128,64,1); break;
+      case 2: display.drawBitmap(0,0,loading_2,128,64,1); break;
+      case 3: display.drawBitmap(0,0,loading_3,128,64,1); break;
+    }
+    display.display();
+    phase = (phase + 1) % 4;
+    vTaskDelay(200 / portTICK_PERIOD_MS);
+  }
+
+  display.clearDisplay();
+  display.display();
+
+  vTaskDelete(NULL);
+}
 
 
 void setup() {
   initDisplay();
-  displayLogo();
+  xTaskCreate(animationTask, "animTask", 2048, NULL, 1, NULL);
   Serial.begin(115200);
   initWiFi();
   initTime();
@@ -24,8 +46,10 @@ void setup() {
   fetchWeather();
   updateDisplayTime();
   screenDirty = true;
+  loading = false;
   display.clearDisplay();
   display.display();
+  displayTouched();
 }
 
 void loop() {
@@ -34,7 +58,7 @@ void loop() {
   bool clicked = encoder.wasClicked();
   bool touched = (digitalRead(TOUCH_PIN) == HIGH);
 
-  hours = (getHours() + 2) % 24;
+  hours = (getHours() + 1) % 24;
   minutes = getMinutes();
   
 
@@ -55,14 +79,16 @@ void loop() {
       uiState = UI_SET_ALARM;
       screenDirty = true;
     }else if(uiState == UI_SET_ALARM){
-      if(alarmField == 1){
+      if(alarmField == 3){
         uiState = UI_HOME;
         alarmField = 0;
         alarmHour = tmp_alarmHour;
         alarmMinute = tmp_alarmMinute;
+        tempValue = tmp_tempValue;
+        tempCondition = tmp_tempCondition;
         Serial.printf("Alarm set for %d:%d\n", alarmHour, alarmMinute);
       }else{
-        alarmField = (alarmField + 1) % 2;
+        alarmField = (alarmField + 1) % 4;
       }
       screenDirty = true;
     }
@@ -74,12 +100,22 @@ void loop() {
 
   if(steps != 0){
     if (uiState == UI_SET_ALARM) {
-      if (alarmField == 0) {
-        tmp_alarmHour = (tmp_alarmHour + (int)steps) % 24;
-        if (tmp_alarmHour < 0) tmp_alarmHour += 24;
-      } else {
-        tmp_alarmMinute = (tmp_alarmMinute + (int)steps) % 60;
-        if (tmp_alarmMinute < 0) tmp_alarmMinute += 60;
+      switch(alarmField){
+        case 0:
+          tmp_alarmHour = (tmp_alarmHour + (int)steps) % 24;
+          if (tmp_alarmHour < 0) tmp_alarmHour += 24;
+          break;
+        case 1:
+          tmp_alarmMinute = (tmp_alarmMinute + (int)steps) % 60;
+          if (tmp_alarmMinute < 0) tmp_alarmMinute += 60;
+          break;
+        case 2:
+          tmp_tempCondition = (tmp_tempCondition + 1) % 3;
+          break;
+        case 3:
+          tmp_tempValue += steps;
+          if(tmp_tempValue < -30) tmp_tempValue = -30;
+          if(tmp_tempValue > 50) tmp_tempValue = 50;
       }
       screenDirty = true;
     } else {
@@ -115,7 +151,20 @@ void loop() {
   displayUpdate();
 
   if(hours == alarmHour && minutes == alarmMinute){
-    alarmActive = true;
+    switch(tempCondition){
+      case 0:
+        alarmActive = true;
+        break;
+      case 1: 
+        if(cachedTemp < tempValue){
+          alarmActive = true;
+        }
+        break;
+      case 2:
+        if(cachedTemp > tempValue){
+          alarmActive = true;
+        }
+    }
   }
 
 

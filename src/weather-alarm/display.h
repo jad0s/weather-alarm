@@ -5,6 +5,7 @@
 
 extern Adafruit_SSD1306 display;
 extern bool screenOn;
+extern bool loading;
 
 void initDisplay();
 void displayLogo();

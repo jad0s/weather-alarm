@@ -11,11 +11,29 @@ bool screenDirty = false;
 void drawAlarmUI(){
   display.clearDisplay();
   display.setTextSize(3);
-  display.setCursor(0, 30);
+  display.setCursor(0, 10);
 
   char buf[6];
   snprintf(buf, sizeof(buf), "%02d:%02d", tmp_alarmHour, tmp_alarmMinute);
   display.println(buf);
+
+  display.setCursor(0, 40);
+  switch(tmp_tempCondition){
+    case 0:
+      display.print("OFF");
+      break;
+    case 1:
+      display.print("<");
+      break;
+    case 2:
+      display.print(">");
+      break;
+  }
+  if(tmp_tempCondition != 0){
+    display.setCursor(60, 40);
+    display.print(tmp_tempValue);
+    display.print("C");
+  }
 
   display.display();
 }

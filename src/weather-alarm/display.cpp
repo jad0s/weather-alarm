@@ -3,12 +3,14 @@
 #include "weather.h"
 #include "ui.h"
 #include "systemtime.h"
+#include "icons.h"
 
 
 #define SCREEN_TIMEOUT 5000
 static unsigned long lastTouch=0;
 
 bool screenOn = true;
+bool loading = true;
 
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
@@ -27,12 +29,33 @@ void initDisplay() {
 }
 
 void displayLogo() {
-    display.clearDisplay();
-    display.setTextColor(SSD1306_WHITE);
-    display.setTextSize(2);           
-    display.setCursor(0,0);
-    display.println("Weather Alarm");
-    display.display(); 
+  unsigned long millis_last;
+  while(loading == true){
+    static int loading_phase = 0;
+    loading_phase = (++loading_phase % 3);
+    if(millis() - millis_last >= 200){
+      display.clearDisplay();
+      display.setTextColor(SSD1306_WHITE);
+      display.setTextSize(2);           
+      display.setCursor(0,0);
+      switch(loading_phase){
+        case 0:
+          display.drawBitmap(0, 0, loading_0, 128, 64, 1);
+        case 1:
+          display.drawBitmap(0, 0, loading_1, 128, 64, 1);
+        case 2:
+          display.drawBitmap(0, 0, loading_2, 128, 64, 1);
+        case 3:
+          display.drawBitmap(0, 0, loading_3, 128, 64, 1);
+      }
+      
+      display.display(); 
+    }
+    millis_last = millis();
+    
+    
+  }
+    
 }
 
 /*void updateDisplayTime() {

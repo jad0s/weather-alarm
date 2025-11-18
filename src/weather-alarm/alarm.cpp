@@ -7,6 +7,10 @@ int alarmHour;
 int alarmMinute;
 int tmp_alarmHour = 7;
 int tmp_alarmMinute = 0;
+int8_t tempCondition = 0;
+int8_t tempValue = 0;
+int8_t tmp_tempCondition = 0;
+int8_t tmp_tempValue = 0;
 
 
 void alarm(){

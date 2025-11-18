@@ -5,3 +5,7 @@ extern int alarmHour;
 extern int alarmMinute;
 extern int tmp_alarmHour;
 extern int tmp_alarmMinute;
+extern int8_t tempCondition;
+extern int8_t tempValue;
+extern int8_t tmp_tempCondition;
+extern int8_t tmp_tempValue;
