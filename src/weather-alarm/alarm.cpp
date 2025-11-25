@@ -1,6 +1,7 @@
 #include "pins.h"
 #include <Arduino.h>
 #include "encoder.h"
+#include "alarm.h"
 
 bool alarmActive = false;
 int alarmHour;
@@ -11,6 +12,8 @@ int8_t tempCondition = 0;
 int8_t tempValue = 0;
 int8_t tmp_tempCondition = 0;
 int8_t tmp_tempValue = 0;
+
+
 
 
 void alarm(){

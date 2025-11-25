@@ -38,6 +38,13 @@ void setup() {
   initDisplay();
   xTaskCreate(animationTask, "animTask", 2048, NULL, 1, NULL);
   Serial.begin(115200);
+  Alarm defaultAlarm;
+  defaultAlarm.hour = 7;
+  defaultAlarm.minute = 0;
+  defaultAlarm.tempCond = COND_OFF;
+  defaultAlarm.tempValue = 0;
+  defaultAlarm.enabled = true;
+  alarms.push_back(defaultAlarm);
   initWiFi();
   initTime();
   updateTime();  
@@ -76,9 +83,9 @@ void loop() {
   if (clicked && screenOn == true) {
     Serial.println("Click");
     if(uiState == UI_HOME){
-      uiState = UI_SET_ALARM;
+      uiState = UI_ALARM_LIST;
       screenDirty = true;
-    }else if(uiState == UI_SET_ALARM){
+    }/*else if(uiState == UI_SET_ALARM){
       if(alarmField == 3){
         uiState = UI_HOME;
         alarmField = 0;
@@ -91,7 +98,7 @@ void loop() {
         alarmField = (alarmField + 1) % 4;
       }
       screenDirty = true;
-    }
+    }*/
   }
 
   if(touched || clicked || steps != 0){
@@ -99,28 +106,30 @@ void loop() {
   }
 
   if(steps != 0){
-    if (uiState == UI_SET_ALARM) {
-      switch(alarmField){
-        case 0:
-          tmp_alarmHour = (tmp_alarmHour + (int)steps) % 24;
-          if (tmp_alarmHour < 0) tmp_alarmHour += 24;
-          break;
-        case 1:
-          tmp_alarmMinute = (tmp_alarmMinute + (int)steps) % 60;
-          if (tmp_alarmMinute < 0) tmp_alarmMinute += 60;
-          break;
-        case 2:
-          tmp_tempCondition = (tmp_tempCondition + 1) % 3;
-          break;
-        case 3:
-          tmp_tempValue += steps;
-          if(tmp_tempValue < -30) tmp_tempValue = -30;
-          if(tmp_tempValue > 50) tmp_tempValue = 50;
+    if (uiState == UI_ALARM_EDIT) {
+      if (encoder.wasClicked()) {
+          if (editIndex == -1) {
+              // Enter editing mode for the selected field
+              editIndex = cursorIndex;
+          } else {
+              // Exit editing mode
+              editIndex = -1;
+          }
+          screenDirty = true;
       }
-      screenDirty = true;
-    } else {
-      // optional: global encoder actions in HOME (scroll menu, etc.)
+
+      if (steps != 0) {
+          if (editIndex == -1) {
+              // moving the cursor
+              cursorIndex = constrain(cursorIndex + steps, 0, 4);
+          } else {
+              // editing the selected field
+              editAlarmField(alarms[selectedAlarmIndex], editIndex, steps);
+          }
+          screenDirty = true;
+      }
     }
+
   }
 
   if(screenDirty){
@@ -128,8 +137,8 @@ void loop() {
       case UI_HOME:
         updateDisplayTime();
         break;
-      case UI_SET_ALARM:
-        drawAlarmUI();
+      case UI_ALARM_LIST:
+        drawAlarmList();
         break;
     }
     screenDirty = false;
@@ -150,7 +159,9 @@ void loop() {
 
   displayUpdate();
 
-  if(hours == alarmHour && minutes == alarmMinute){
+  static bool rang = false;
+
+  if(hours == alarmHour && minutes == alarmMinute && rang == false){
     switch(tempCondition){
       case 0:
         alarmActive = true;
@@ -170,11 +181,16 @@ void loop() {
 
   if(alarmActive){
     alarm();
+    rang = true;
     Serial.printf("alarm time is %d:%d, current time is %d:%d, alarming\n", alarmHour, alarmMinute, hours, minutes);
     if(digitalRead(TOUCH_PIN) == HIGH){
       alarmActive = false;
       noTone(BUZZER_PIN);
     }
+  }
+
+  if(hours == 0 && minutes == 0){
+    rang = false;
   }
 
     
