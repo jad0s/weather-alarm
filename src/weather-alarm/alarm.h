@@ -35,11 +35,12 @@ struct AlarmCondition{
 };
 
 struct Alarm{
-  int hour, minute;
-  TempCondition tempCond; //0 = OFF, 1 = < (less than), 2 = > (greater than)
-  int tempValue;
+  int hour = 7;
+  int minute = 0;
+  TempCondition tempCond = COND_OFF; //0 = OFF, 1 = < (less than), 2 = > (greater than)
+  int tempValue = 0;
   std::vector<AlarmCondition> weather;
-  bool enabled;
+  bool enabled = true;
 };
 
 #endif

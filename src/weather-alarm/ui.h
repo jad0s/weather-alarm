@@ -13,10 +13,11 @@ extern int cursorIndex;
 extern int selectedAlarmIndex;
 extern std::vector<Alarm> alarms;
 extern int editIndex;
+extern int subIndex;
 
 void updateUi();
 void updateDisplayTime();
 void drawAlarmUI();
 void drawAlarmList();
 void drawAlarmEdit();
-void editAlarmField(Alarm &a, int index, int steps);
+void editAlarmField(Alarm &a, int index, int subIndex, int steps);

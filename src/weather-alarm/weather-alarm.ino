@@ -121,29 +121,102 @@ void loop() {
   }
 
   
-  if (uiState == UI_ALARM_EDIT) {
-    if (clicked) {
-        if (editIndex == -1) {
-            // Enter editing mode for the selected field
-            editIndex = cursorIndex;
-        } else {
-              // Exit editing mode
-            editIndex = -1;
-        }
-        screenDirty = true;
-    }
+    if (uiState == UI_ALARM_EDIT) {
+      if (clicked) {
+          if (editIndex == -1) {
+              // Not currently editing a field: handle selection clicks (Delete/Back/enter edit)
+              if (cursorIndex == 3) {           // Delete
+                alarms.erase(alarms.begin() + selectedAlarmIndex);
+                // if list empty, go back to ALARM_LIST
+                if (alarms.empty()){
+                  uiState = UI_ALARM_LIST;
+                  cursorIndex = 0;
+                  selectedAlarmIndex = 0;
+                } else {
+                  // clamp selection
+                  if (selectedAlarmIndex >= (int)alarms.size()) selectedAlarmIndex = alarms.size()-1;
+                  cursorIndex = 0;
+                }
+                editIndex = -1;
+                screenDirty = true;
+              }
+              else if (cursorIndex == 4) {      // Back
+                  uiState = UI_ALARM_LIST;
+                  cursorIndex = 0;
+                  editIndex = -1;
+                  screenDirty = true;
+              }
+              else {
+                  // Enter edit mode for selected field (hour / cond / value / weather)
+                  editIndex = cursorIndex;
+              }
+          } else {
+              // Move to next sub-field
+            subIndex++;
+
+            // Determine number of subfields
+            int count = 1;
+            if (editIndex == 0) count = 2;    // time: hour + minute
+            if (editIndex == 1 && alarms[selectedAlarmIndex].tempCond != COND_OFF)
+                count = 2;                    // temp: cond + value
+
+            if (subIndex >= count) {
+                // exit edit mode
+                editIndex = -1;
+                subIndex = 0;
+            }
+          }
+          screenDirty = true;
+      }
 
     if (steps != 0) {
         if (editIndex == -1) {
-            // moving the cursor
+            // moving the cursor while not editing
             cursorIndex = constrain(cursorIndex + steps, 0, 4);
         } else {
-            // editing the selected field
-            editAlarmField(alarms[hAlarmIndex], editIndex, steps);
+            // editing the selected field on the selected alarm
+            editAlarmField(alarms[selectedAlarmIndex], editIndex, subIndex, steps);
         }
         screenDirty = true;
     }
   }
+
+  if (uiState == UI_ALARM_LIST) {
+
+    if (steps != 0) {
+        cursorIndex = constrain(cursorIndex + steps, 0, (int)alarms.size());
+        screenDirty = true;
+    }
+
+    if (clicked) {
+        if (cursorIndex == 0) {
+            // "+ Add alarm"
+            Alarm a;
+            a.hour = 7;
+            a.minute = 0;
+            a.tempCond = COND_OFF;
+            a.tempValue = 0;
+            a.enabled = true;
+            alarms.push_back(a);
+
+            selectedAlarmIndex = alarms.size()-1;
+            cursorIndex = 0;
+            editIndex = -1;
+            uiState = UI_ALARM_EDIT;
+        } else {
+            // select existing alarm
+            selectedAlarmIndex = cursorIndex - 1;
+            cursorIndex = 0;
+            editIndex = -1;
+            uiState = UI_ALARM_EDIT;
+        }
+        screenDirty = true;
+    }
+  }
+
+
+
+
 
   
 
