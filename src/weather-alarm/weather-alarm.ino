@@ -11,7 +11,6 @@
 #include "ui.h"
 #include "icons.h"
 
-
 void animationTask(void * parameter){
   int phase = 0;
   while(loading){
@@ -32,7 +31,15 @@ void animationTask(void * parameter){
 
   vTaskDelete(NULL);
 }
-
+/*
+void WiFiTask(void * parameter){
+  
+  initWiFi();
+  
+  
+  
+}
+*/
 
 void setup() {
   initDisplay();
@@ -46,6 +53,8 @@ void setup() {
   defaultAlarm.enabled = true;
   alarms.push_back(defaultAlarm);
   initWiFi();
+  //xTaskCreate(WiFiTask, "WiFiTask", 2048, NULL, 1, NULL);
+  int WiFiMillis = millis();
   initTime();
   updateTime();  
   initBuzzer();
@@ -82,10 +91,16 @@ void loop() {
   // read button
   if (clicked && screenOn == true) {
     Serial.println("Click");
-    if(uiState == UI_HOME){
-      uiState = UI_ALARM_LIST;
-      screenDirty = true;
-    }/*else if(uiState == UI_SET_ALARM){
+    switch(uiState){
+      case UI_HOME:
+        uiState = UI_ALARM_LIST;
+        screenDirty = true;
+        break;
+
+    }
+
+
+    /*else if(uiState == UI_SET_ALARM){
       if(alarmField == 3){
         uiState = UI_HOME;
         alarmField = 0;
@@ -105,32 +120,32 @@ void loop() {
     displayTouched();
   }
 
-  if(steps != 0){
-    if (uiState == UI_ALARM_EDIT) {
-      if (encoder.wasClicked()) {
-          if (editIndex == -1) {
-              // Enter editing mode for the selected field
-              editIndex = cursorIndex;
-          } else {
+  
+  if (uiState == UI_ALARM_EDIT) {
+    if (clicked) {
+        if (editIndex == -1) {
+            // Enter editing mode for the selected field
+            editIndex = cursorIndex;
+        } else {
               // Exit editing mode
-              editIndex = -1;
-          }
-          screenDirty = true;
-      }
-
-      if (steps != 0) {
-          if (editIndex == -1) {
-              // moving the cursor
-              cursorIndex = constrain(cursorIndex + steps, 0, 4);
-          } else {
-              // editing the selected field
-              editAlarmField(alarms[selectedAlarmIndex], editIndex, steps);
-          }
-          screenDirty = true;
-      }
+            editIndex = -1;
+        }
+        screenDirty = true;
     }
 
+    if (steps != 0) {
+        if (editIndex == -1) {
+            // moving the cursor
+            cursorIndex = constrain(cursorIndex + steps, 0, 4);
+        } else {
+            // editing the selected field
+            editAlarmField(alarms[hAlarmIndex], editIndex, steps);
+        }
+        screenDirty = true;
+    }
   }
+
+  
 
   if(screenDirty){
     switch(uiState){
@@ -139,6 +154,9 @@ void loop() {
         break;
       case UI_ALARM_LIST:
         drawAlarmList();
+        break;
+      case UI_ALARM_EDIT:
+        drawAlarmEdit();
         break;
     }
     screenDirty = false;
@@ -151,7 +169,7 @@ void loop() {
           // update NTP time
   
 
-  if (millis() - lastFetch > 1 * 60 * 1000){
+  if (millis() - lastFetch > 30 * 60 * 1000){
     weatherValid = false;
     fetchWeather();
   }
