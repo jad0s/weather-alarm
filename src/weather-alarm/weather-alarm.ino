@@ -141,7 +141,7 @@ void loop() {
                 screenDirty = true;
               }
               else if (cursorIndex == 4) {      // Back
-                  uiState = UI_ALARM_LIST;
+                  uiState = UI_HOME;
                   cursorIndex = 0;
                   editIndex = -1;
                   screenDirty = true;
@@ -172,7 +172,7 @@ void loop() {
     if (steps != 0) {
         if (editIndex == -1) {
             // moving the cursor while not editing
-            cursorIndex = constrain(cursorIndex + steps, 0, 4);
+            cursorIndex = (cursorIndex + steps) % 4;
         } else {
             // editing the selected field on the selected alarm
             editAlarmField(alarms[selectedAlarmIndex], editIndex, subIndex, steps);
