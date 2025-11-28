@@ -14,6 +14,7 @@ extern int8_t tempCondition;
 extern int8_t tempValue;
 extern int8_t tmp_tempCondition;
 extern int8_t tmp_tempValue;
+extern std::vector<Alarm> alarms;
 
 enum WeatherType{
   RAIN,

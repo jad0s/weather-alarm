@@ -11,7 +11,6 @@ extern UIState uiState;
 extern bool screenDirty;
 extern int cursorIndex;
 extern int selectedAlarmIndex;
-extern std::vector<Alarm> alarms;
 extern int editIndex;
 extern int subIndex;
 

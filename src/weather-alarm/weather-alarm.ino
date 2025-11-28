@@ -11,7 +11,9 @@
 #include "ui.h"
 #include "icons.h"
 
-void animationTask(void * parameter){
+//loading animation. Every 200ms, a new frame is loaded, while loading is true.
+
+void animationTask(void * parameter){ 
   int phase = 0;
   while(loading){
     display.clearDisplay();
@@ -31,19 +33,10 @@ void animationTask(void * parameter){
 
   vTaskDelete(NULL);
 }
-/*
-void WiFiTask(void * parameter){
-  
-  initWiFi();
-  
-  
-  
-}
-*/
 
 void setup() {
   initDisplay();
-  xTaskCreate(animationTask, "animTask", 2048, NULL, 1, NULL);
+  xTaskCreate(animationTask, "animTask", 2048, NULL, 1, NULL); //first thing on boot is showing the animation.
   Serial.begin(115200);
   Alarm defaultAlarm;
   defaultAlarm.hour = 7;
@@ -53,7 +46,6 @@ void setup() {
   defaultAlarm.enabled = true;
   alarms.push_back(defaultAlarm);
   initWiFi();
-  //xTaskCreate(WiFiTask, "WiFiTask", 2048, NULL, 1, NULL);
   int WiFiMillis = millis();
   initTime();
   updateTime();  
@@ -62,7 +54,7 @@ void setup() {
   fetchWeather();
   updateDisplayTime();
   screenDirty = true;
-  loading = false;
+  loading = false; //after all loading is done, terminate the animation task.
   display.clearDisplay();
   display.display();
   displayTouched();
@@ -76,52 +68,26 @@ void loop() {
 
   hours = (getHours() + 1) % 24;
   minutes = getMinutes();
-  
-
-  // read steps (signed) and print direction
-  
-  /*if (steps != 0) {
-    // if steps magnitude >1, user turned quickly; print each detent
-    while (steps > 0) { Serial.println("CW"); steps--; }
-    while (steps < 0) { Serial.println("CCW"); steps++; }
-  }*/
 
   static int alarmField = 0;
 
-  // read button
+  // if the current screen is the homescreen and encoder is clicked, switch to the alarm screen
   if (clicked && screenOn == true) {
     Serial.println("Click");
     switch(uiState){
       case UI_HOME:
         uiState = UI_ALARM_LIST;
         screenDirty = true;
-        clicked = false
+        clicked = false; //consume the click as it's no longer needed in this loop
         break;
 
     }
-
-
-    /*else if(uiState == UI_SET_ALARM){
-      if(alarmField == 3){
-        uiState = UI_HOME;
-        alarmField = 0;
-        alarmHour = tmp_alarmHour;
-        alarmMinute = tmp_alarmMinute;
-        tempValue = tmp_tempValue;
-        tempCondition = tmp_tempCondition;
-        Serial.printf("Alarm set for %d:%d\n", alarmHour, alarmMinute);
-      }else{
-        alarmField = (alarmField + 1) % 4;
-      }
-      screenDirty = true;
-    }*/
   }
 
   if(touched || clicked || steps != 0){
     displayTouched();
   }
 
-  
     if (uiState == UI_ALARM_EDIT) {
       if (clicked) {
           if (editIndex == -1) {
@@ -215,13 +181,7 @@ void loop() {
     }
   }
 
-
-
-
-
-  
-
-  if(screenDirty){
+  if(screenDirty){ //update the UI
     switch(uiState){
       case UI_HOME:
         updateDisplayTime();
@@ -238,22 +198,25 @@ void loop() {
 
 
   if(millis()%60000 == 0){
-    updateTime();
+    updateTime();  // update NTP time
   }
-          // update NTP time
-  
 
+  //fetch new weather every 30 minutes
+  //Open-Meteo updates every hour
   if (millis() - lastFetch > 30 * 60 * 1000){
     weatherValid = false;
     fetchWeather();
   }
     
 
-  displayUpdate();
+  displayUpdate(); //check if last interaction is longer than screen timeout (10s)
+  //if it is, turn screen off
 
+  //check if any alarm should be activated
   for(int i = 0; i < alarms.size(); i++){
     Alarm &alarm = alarms[i]
     if(hours == alarm.hour && minutes == alarm.minute && alarm.rang == false){
+      //check if temperature condition is met
       switch(alarm.tempCondition){
         case 0:
           alarm.active = true;
@@ -271,7 +234,7 @@ void loop() {
     }
 
     if(alarm.active){
-      alarm();
+      alarm(); //activate buzzer
       alarm.rang = true;
       Serial.printf("alarm time is %d:%d, current time is %d:%d, alarming\n", alarmHour, alarmMinute, hours, minutes);
       if(digitalRead(TOUCH_PIN) == HIGH){
@@ -282,7 +245,7 @@ void loop() {
   }
 
 
-  if(hours == 0 && minutes == 0){
+  if(hours == 0 && minutes == 0){ //reset all alarms at midnight
     for(int i = 0; i < alarms.size(); i++){
       alarms[i].rang = false;
     }

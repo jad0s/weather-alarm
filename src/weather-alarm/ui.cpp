@@ -13,8 +13,6 @@ int selectedAlarmIndex = 0;
 int editIndex = -1; // -1 = no field being edited
 int subIndex = 0; //index of the selected sub-setting
 
-std::vector<Alarm> alarms;
-
 void drawAlarmUI(){
   display.clearDisplay();
   display.setTextSize(3);
