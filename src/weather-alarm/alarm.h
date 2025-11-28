@@ -41,6 +41,8 @@ struct Alarm{
   int tempValue = 0;
   std::vector<AlarmCondition> weather;
   bool enabled = true;
+  bool rang = false;
+  bool active = false;
 };
 
 #endif

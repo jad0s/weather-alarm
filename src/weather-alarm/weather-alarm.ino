@@ -250,7 +250,6 @@ void loop() {
 
   displayUpdate();
 
-  static bool rang = false;
 
   if(hours == alarmHour && minutes == alarmMinute && rang == false){
     switch(tempCondition){
@@ -269,19 +268,42 @@ void loop() {
     }
   }
 
+  Alarm alarm;
+  for(int i = 0; i < alarms.size(), i++){
+    alarm = alarms[i]
+    if(hours == alarm.hour && minutes == alarm.minute && alarm.rang == false){
+      switch(alarm.tempCondition){
+        case 0:
+          alarmActive = true;
+          break;
+        case 1:
+          if(cachesTemp < alarm.tempValue){
+            alarmActive = true;
+          }
+          break;
+        case 2:
+          if(cachedTemp > alarm.tempValue){
+            alarmActive = true;
+          }
+      }
+    }
 
-  if(alarmActive){
-    alarm();
-    rang = true;
-    Serial.printf("alarm time is %d:%d, current time is %d:%d, alarming\n", alarmHour, alarmMinute, hours, minutes);
-    if(digitalRead(TOUCH_PIN) == HIGH){
-      alarmActive = false;
-      noTone(BUZZER_PIN);
+    if(alarm.active){
+      alarm();
+      alarm.rang = true;
+      Serial.printf("alarm time is %d:%d, current time is %d:%d, alarming\n", alarmHour, alarmMinute, hours, minutes);
+      if(digitalRead(TOUCH_PIN) == HIGH){
+        alarm.active = false;
+        noTone(BUZZER_PIN);
+      }
     }
   }
 
+
   if(hours == 0 && minutes == 0){
-    rang = false;
+    for(int i = 0; i < alarms.size(); i++){
+      alarms[i].rang = false;
+    }
   }
 
     
