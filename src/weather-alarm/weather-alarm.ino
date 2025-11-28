@@ -250,40 +250,21 @@ void loop() {
 
   displayUpdate();
 
-
-  if(hours == alarmHour && minutes == alarmMinute && rang == false){
-    switch(tempCondition){
-      case 0:
-        alarmActive = true;
-        break;
-      case 1: 
-        if(cachedTemp < tempValue){
-          alarmActive = true;
-        }
-        break;
-      case 2:
-        if(cachedTemp > tempValue){
-          alarmActive = true;
-        }
-    }
-  }
-
-  Alarm alarm;
-  for(int i = 0; i < alarms.size(), i++){
-    alarm = alarms[i]
+  for(int i = 0; i < alarms.size(); i++){
+    Alarm &alarm = alarms[i]
     if(hours == alarm.hour && minutes == alarm.minute && alarm.rang == false){
       switch(alarm.tempCondition){
         case 0:
-          alarmActive = true;
+          alarm.active = true;
           break;
         case 1:
-          if(cachesTemp < alarm.tempValue){
-            alarmActive = true;
+          if(cachedTemp < alarm.tempValue){
+            alarm.active = true;
           }
           break;
         case 2:
           if(cachedTemp > alarm.tempValue){
-            alarmActive = true;
+            alarm.active = true;
           }
       }
     }
