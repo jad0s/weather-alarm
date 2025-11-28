@@ -95,6 +95,7 @@ void loop() {
       case UI_HOME:
         uiState = UI_ALARM_LIST;
         screenDirty = true;
+        clicked = false
         break;
 
     }
