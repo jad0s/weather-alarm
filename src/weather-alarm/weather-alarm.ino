@@ -139,7 +139,7 @@ void loop() {
     if (steps != 0) {
         if (editIndex == -1) {
             // moving the cursor while not editing
-            cursorIndex = (cursorIndex + steps) % 4;
+            cursorIndex = (cursorIndex + steps) % 5;
         } else {
             // editing the selected field on the selected alarm
             editAlarmField(alarms[selectedAlarmIndex], editIndex, subIndex, steps);
@@ -214,10 +214,10 @@ void loop() {
 
   //check if any alarm should be activated
   for(int i = 0; i < alarms.size(); i++){
-    Alarm &alarm = alarms[i]
+    Alarm &alarm = alarms[i];
     if(hours == alarm.hour && minutes == alarm.minute && alarm.rang == false){
       //check if temperature condition is met
-      switch(alarm.tempCondition){
+      switch(alarm.tempCond){
         case 0:
           alarm.active = true;
           break;
@@ -234,9 +234,9 @@ void loop() {
     }
 
     if(alarm.active){
-      alarm(); //activate buzzer
+      ring_alarm(); //activate buzzer
       alarm.rang = true;
-      Serial.printf("alarm time is %d:%d, current time is %d:%d, alarming\n", alarmHour, alarmMinute, hours, minutes);
+      Serial.printf("alarm time is %d:%d, current time is %d:%d, alarming\n", alarm.hour, alarm.minute, hours, minutes);
       if(digitalRead(TOUCH_PIN) == HIGH){
         alarm.active = false;
         noTone(BUZZER_PIN);

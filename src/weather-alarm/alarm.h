@@ -3,18 +3,10 @@
 
 #include <Arduino.h>
 
-void alarm();
+void ring_alarm();
 void setAlarm();
-extern bool alarmActive;
-extern int alarmHour;
-extern int alarmMinute;
-extern int tmp_alarmHour;
-extern int tmp_alarmMinute;
-extern int8_t tempCondition;
-extern int8_t tempValue;
-extern int8_t tmp_tempCondition;
-extern int8_t tmp_tempValue;
-extern std::vector<Alarm> alarms;
+
+extern Alarm tempAlarm;
 
 enum WeatherType{
   RAIN,
@@ -45,5 +37,7 @@ struct Alarm{
   bool rang = false;
   bool active = false;
 };
+
+extern std::vector<Alarm> alarms;
 
 #endif
