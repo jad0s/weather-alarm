@@ -13,7 +13,8 @@ int selectedAlarmIndex = 0;
 int editIndex = -1; // -1 = no field being edited
 int subIndex = 0; //index of the selected sub-setting
 
-void drawAlarmUI(){
+
+/*void drawAlarmUI(){
   display.clearDisplay();
   display.setTextSize(3);
   display.setCursor(0, 10);
@@ -41,7 +42,7 @@ void drawAlarmUI(){
   }
 
   display.display();
-}
+}*/
 
 void drawAlarmList() {
     display.clearDisplay();
@@ -83,7 +84,7 @@ void drawAlarmEdit() {
     if (selectedAlarmIndex < 0) selectedAlarmIndex = 0;
     if (selectedAlarmIndex >= (int)alarms.size()) selectedAlarmIndex = alarms.size() - 1;
 
-    Alarm &a = alarms[selectedAlarmIndex];
+    Alarm &a = tempAlarm;
 
     display.clearDisplay();
     display.setTextSize(1);
@@ -116,7 +117,8 @@ void drawAlarmEdit() {
     line(buf, 1);
 
     // Weather count line
-    snprintf(buf, sizeof(buf), "Weather: %d conds", (int)a.weather.size());
+    int totalWeather = a.positive.size() + a.negative.size();
+    snprintf(buf, sizeof(buf), "Weather: %d", totalWeather);
     line(buf, 2);
 
     line("Delete", 3);
@@ -152,7 +154,8 @@ void updateDisplayTime(){
     display.display();
 }
 
-void editAlarmField(Alarm &a, int index, int subIndex, int steps) {
+void editAlarmField(int index, int subIndex, int steps) {
+    Alarm &a = tempAlarm;
 
     switch (index) {
 
@@ -176,19 +179,108 @@ void editAlarmField(Alarm &a, int index, int subIndex, int steps) {
                     a.tempValue = constrain(a.tempValue + steps, -40, 60);
             }
             break;
-
-        case 2: // Weather row
-            if (!a.weather.empty()) {
-                subIndex = constrain(subIndex, 0, (int)a.weather.size() - 1);
-                a.weather[subIndex].boolToTrigger = !a.weather[subIndex].boolToTrigger;
-            }
-            break;
-
         // 3 = Delete  (handled outside)
         // 4 = Back    (handled outside)
 
     }
 }
+
+void drawWeatherMenu() {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0,0);
+
+    Alarm &a = tempAlarm;
+
+    int row = 0;
+    auto printRow = [&](const char* label, int idx) {
+        display.setCursor(0, row);
+        if (cursorIndex == idx) display.print("> ");
+        else display.print("  ");
+        display.println(label);
+        row += 12;
+    };
+
+    printRow("+ Add POSITIVE", 0);
+    printRow("+ Add NEGATIVE", 1);
+
+    int index = 2;
+
+    // Print positive list
+    for (int i = 0; i < a.positive.size(); i++) {
+        char lineBuf[32];
+        snprintf(lineBuf, sizeof(lineBuf), "POS: %d", a.positive[i]);
+        printRow(lineBuf, index++);
+    }
+
+    // Print negative list
+    for (int i = 0; i < a.negative.size(); i++) {
+        char lineBuf[32];
+        snprintf(lineBuf, sizeof(lineBuf), "NEG: %d", a.negative[i]);
+        printRow(lineBuf, index++);
+    }
+
+    // Back
+    printRow("Back", index);
+
+    display.display();
+}
+
+const WeatherCode weatherList[] = {
+    WC_CLEAR, WC_MAINLY_CLEAR, WC_PARTLY_CLOUDY, WC_OVERCAST,
+    WC_FOG, WC_RIME_FOG, WC_DRIZZLE_LIGHT, WC_DRIZZLE_MOD,
+    WC_DRIZZLE_DENSE, WC_RAIN_SLIGHT, WC_RAIN_MOD, WC_RAIN_HEAVY,
+    WC_SHOWER_SLIGHT, WC_SHOWER_MOD, WC_SHOWER_VIOLENT,
+    WC_STORM, WC_STORM_HAIL_SLIGHT, WC_STORM_HAIL_HEAVY
+};
+
+const int weatherListCount = sizeof(weatherList)/sizeof(weatherList[0]);
+
+void drawWeatherPick() {
+    display.clearDisplay();
+    display.setTextSize(1);
+
+    int row = 0;
+    for (int i = 0; i < weatherListCount; i++) {
+        display.setCursor(0, row);
+        if (cursorIndex == i) display.print("> ");
+        else display.print("  ");
+        display.print("Code ");
+        display.println((int)weatherList[i]);
+        row += 12;
+    }
+
+    // Back option
+    display.setCursor(0,row);
+    if (cursorIndex == weatherListCount) display.print("> ");
+    else display.print("  ");
+    display.println("Back");
+
+    display.display();
+}
+
+void drawWeatherDeleteConfirm() {
+    display.clearDisplay();
+    display.setTextSize(1);
+
+    display.setCursor(0,0);
+    display.println("Delete?");
+    
+    display.setCursor(0,12);
+    if (cursorIndex == 0) display.print("> ");
+    else display.print("  ");
+    display.println("Yes");
+
+    display.setCursor(0,24);
+    if (cursorIndex == 1) display.print("> ");
+    else display.print("  ");
+    display.println("No");
+
+    display.display();
+}
+
+
+
 
 
 

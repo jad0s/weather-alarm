@@ -107,7 +107,18 @@ void loop() {
                 editIndex = -1;
                 screenDirty = true;
               }
+              else if (cursorIndex == 2) {
+                  uiState = UI_WEATHER_MENU;
+                  cursorIndex = 0;
+                  editIndex = -1;
+                  subIndex = 0;
+                  screenDirty = true;
+              }
+
               else if (cursorIndex == 4) {      // Back
+                  //save the temp alarm into real alarm
+                  alarms[selectedAlarmIndex] = tempAlarm;
+
                   uiState = UI_HOME;
                   cursorIndex = 0;
                   editIndex = -1;
@@ -142,7 +153,7 @@ void loop() {
             cursorIndex = (cursorIndex + steps) % 5;
         } else {
             // editing the selected field on the selected alarm
-            editAlarmField(alarms[selectedAlarmIndex], editIndex, subIndex, steps);
+            editAlarmField(editIndex, subIndex, steps);
         }
         screenDirty = true;
     }
@@ -169,17 +180,125 @@ void loop() {
             selectedAlarmIndex = alarms.size()-1;
             cursorIndex = 0;
             editIndex = -1;
+            //create a temporary alarm for the UI
+            //this prevents the alarm from activating during it's setup
+            tempAlarm = alarms[selectedAlarmIndex];
             uiState = UI_ALARM_EDIT;
         } else {
             // select existing alarm
             selectedAlarmIndex = cursorIndex - 1;
             cursorIndex = 0;
             editIndex = -1;
+            //create a temporary alarm for the UI
+            //this prevents the alarm from activating during it's setup
+            tempAlarm = alarms[selectedAlarmIndex];
             uiState = UI_ALARM_EDIT;
         }
         screenDirty = true;
     }
   }
+
+  if (uiState == UI_WEATHER_MENU) {
+    Alarm &a = tempAlarm;
+
+    int maxIndex = 2 + a.positive.size() + a.negative.size(); // back is last
+
+    if (steps != 0) {
+        cursorIndex = constrain(cursorIndex + steps, 0, maxIndex);
+        screenDirty = true;
+    }
+
+    if (clicked) {
+        if (cursorIndex == 0) {
+            // Add positive
+            uiState = UI_WEATHER_PICK;
+            subIndex = 1; // positive
+            cursorIndex = 0;
+        }
+        else if (cursorIndex == 1) {
+            // Add negative
+            uiState = UI_WEATHER_PICK;
+            subIndex = 2; // negative
+            cursorIndex = 0;
+        }
+        else if (cursorIndex == maxIndex) {
+            // Back
+            uiState = UI_ALARM_EDIT;
+            cursorIndex = 2;
+        }
+        else {
+            // Selecting existing entry -> delete confirm
+            int posCount = a.positive.size();
+            if (cursorIndex - 2 < posCount) {
+                // Positive entry selected
+                subIndex = cursorIndex - 2; // index in positive
+                editIndex = 1; // mark positive
+            } else {
+                // Negative entry selected
+                subIndex = cursorIndex - 2 - posCount; // index in negative
+                editIndex = 2; // mark negative
+            }
+
+            uiState = UI_WEATHER_DELETE_CONFIRM;
+            cursorIndex = 0;
+        }
+
+        screenDirty = true;
+    }
+}
+
+if (uiState == UI_WEATHER_PICK) {
+
+    if (steps != 0) {
+        cursorIndex = constrain(cursorIndex + steps, 0, weatherListCount);
+        screenDirty = true;
+    }
+
+    if (clicked) {
+        if (cursorIndex == weatherListCount) {
+            // back
+            uiState = UI_WEATHER_MENU;
+            cursorIndex = 0;
+        } else {
+            // add weather code
+            WeatherCode code = weatherList[cursorIndex];
+
+            if (subIndex == 1)
+                tempAlarm.positive.push_back(code);
+            else
+                tempAlarm.negative.push_back(code);
+
+            uiState = UI_WEATHER_MENU;
+            cursorIndex = 0;
+        }
+        screenDirty = true;
+    }
+}
+
+if (uiState == UI_WEATHER_DELETE_CONFIRM) {
+
+    if (steps != 0) {
+        cursorIndex = constrain(cursorIndex + steps, 0, 1);
+        screenDirty = true;
+    }
+
+    if (clicked) {
+        if (cursorIndex == 0) {
+            // YES — delete
+            if (editIndex == 1)
+                tempAlarm.positive.erase(tempAlarm.positive.begin() + subIndex);
+            else
+                tempAlarm.negative.erase(tempAlarm.negative.begin() + subIndex);
+        }
+
+        uiState = UI_WEATHER_MENU;
+        cursorIndex = 0;
+        screenDirty = true;
+    }
+}
+
+
+
 
   if(screenDirty){ //update the UI
     switch(uiState){
@@ -191,6 +310,15 @@ void loop() {
         break;
       case UI_ALARM_EDIT:
         drawAlarmEdit();
+        break;
+      case UI_WEATHER_MENU:
+        drawWeatherMenu();
+        break;
+      case UI_WEATHER_PICK:
+        drawWeatherPick();
+        break;
+      case UI_WEATHER_DELETE_CONFIRM:
+        drawWeatherDeleteConfirm();
         break;
     }
     screenDirty = false;
@@ -233,7 +361,7 @@ void loop() {
       }
     }
 
-    if(alarm.active){
+    if(alarm.active && checkWeather(alarm, (WeatherCode)cachedWeatherCode)){
       ring_alarm(); //activate buzzer
       alarm.rang = true;
       Serial.printf("alarm time is %d:%d, current time is %d:%d, alarming\n", alarm.hour, alarm.minute, hours, minutes);

@@ -2,19 +2,11 @@
 #define ALARM_H
 
 #include <Arduino.h>
+#include <vector>
+#include "weather.h"
 
 void ring_alarm();
 void setAlarm();
-
-extern Alarm tempAlarm;
-
-enum WeatherType{
-  RAIN,
-  SNOW,
-  STORM,
-  SUNNY,
-  OVERCAST
-};
 
 enum TempCondition{
   COND_OFF = 0, //OFF
@@ -22,22 +14,20 @@ enum TempCondition{
   COND_GT = 2 //Greater than
 };
 
-struct AlarmCondition{
-  WeatherType type;
-  bool boolToTrigger; //false = condition must be false for alarm to trigger, true = condition must be true
-};
 
 struct Alarm{
   int hour = 7;
   int minute = 0;
   TempCondition tempCond = COND_OFF; //0 = OFF, 1 = < (less than), 2 = > (greater than)
   int tempValue = 0;
-  std::vector<AlarmCondition> weather;
   bool enabled = true;
   bool rang = false;
   bool active = false;
+  std::vector<WeatherCode> positive; //OR group
+  std::vector<WeatherCode> negative; // AND group
 };
 
+extern Alarm tempAlarm;
 extern std::vector<Alarm> alarms;
 
 #endif
