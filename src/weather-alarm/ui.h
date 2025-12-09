@@ -7,7 +7,9 @@ enum UIState{
   UI_EDIT_FIELD,
   UI_WEATHER_MENU,
   UI_WEATHER_PICK,
-  UI_WEATHER_DELETE_CONFIRM
+  UI_WEATHER_DELETE_CONFIRM,
+  UI_ALARM_DELETE_CONFIRM,
+  UI_WEATHER_PICK_CONFIRM
 };
 
 extern UIState uiState;
@@ -18,6 +20,8 @@ extern int editIndex;
 extern int subIndex;
 extern const int weatherListCount;
 extern const WeatherCode weatherList[];
+extern int weatherPickListType; // 1 = positive, 2 = negative
+extern int weatherPickChosenIndex; // index chosen in the weatherList carousel
 
 void updateUi();
 void updateDisplayTime();
@@ -27,4 +31,6 @@ void drawAlarmEdit();
 void editAlarmField(int index, int subIndex, int steps);
 void drawWeatherMenu();
 void drawWeatherPick();
+void drawWeatherPickConfirm();
 void drawWeatherDeleteConfirm();
+void drawAlarmDeleteConfirm();

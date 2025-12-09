@@ -29,6 +29,8 @@ extern const float LON;
 extern float cachedTemp;
 extern float cachedRain;
 extern float cachedPrecip;
+extern float cachedWindSpeed; // in km/h
+extern int cachedWindDirection; // degrees from north
 extern int cachedWeatherCode;
 extern bool weatherValid;
 extern unsigned long lastFetch;

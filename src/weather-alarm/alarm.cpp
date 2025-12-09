@@ -3,12 +3,24 @@
 #include "encoder.h"
 #include "alarm.h"
 
+static bool buzzing = false;
+
 void ring_alarm(){
-  static bool buzzing = false;
   if(!buzzing){
     tone(BUZZER_PIN, 262);
     buzzing = true;
-  }  
+  }
+}
+
+void stop_ring(){
+  if(buzzing){
+    noTone(BUZZER_PIN);
+    buzzing = false;
+  }
+}
+
+bool is_ringing(){
+  return buzzing;
 }
 
 Alarm tempAlarm;

@@ -66,6 +66,17 @@ void loop() {
   bool clicked = encoder.wasClicked();
   bool touched = (digitalRead(TOUCH_PIN) == HIGH);
 
+  static bool prevTouched = false;
+  bool touchPressed = (touched && !prevTouched);
+
+  // If the buzzer is ringing and the user just touched, stop it immediately
+  if (touchPressed) {
+    if (is_ringing()) {
+      stop_ring();
+      screenDirty = true;
+    }
+  }
+
   hours = (getHours() + 1) % 24;
   minutes = getMinutes();
 
@@ -90,32 +101,18 @@ void loop() {
 
     if (uiState == UI_ALARM_EDIT) {
       if (clicked) {
-          if (editIndex == -1) {
-              // Not currently editing a field: handle selection clicks (Delete/Back/enter edit)
-              if (cursorIndex == 3) {           // Delete
-                alarms.erase(alarms.begin() + selectedAlarmIndex);
-                // if list empty, go back to ALARM_LIST
-                if (alarms.empty()){
-                  uiState = UI_ALARM_LIST;
-                  cursorIndex = 0;
-                  selectedAlarmIndex = 0;
-                } else {
-                  // clamp selection
-                  if (selectedAlarmIndex >= (int)alarms.size()) selectedAlarmIndex = alarms.size()-1;
-                  cursorIndex = 0;
-                }
-                editIndex = -1;
-                screenDirty = true;
-              }
-              else if (cursorIndex == 2) {
+            if (editIndex == -1) {
+              // Not currently editing a field: handle selection clicks (Back/enter edit)
+              if (cursorIndex == 2) {
                   uiState = UI_WEATHER_MENU;
                   cursorIndex = 0;
                   editIndex = -1;
                   subIndex = 0;
+                  clicked = false; // consume click so menu isn't immediately acted on
                   screenDirty = true;
               }
 
-              else if (cursorIndex == 4) {      // Back
+                else if (cursorIndex == 4) {      // Back (index shifted after removing Delete)
                   //save the temp alarm into real alarm
                   alarms[selectedAlarmIndex] = tempAlarm;
 
@@ -127,6 +124,9 @@ void loop() {
               else {
                   // Enter edit mode for selected field (hour / cond / value / weather)
                   editIndex = cursorIndex;
+                  subIndex = 0; // start editing at first sub-field
+                  // if entering buddy edit, enable buddy on the temp alarm so user can set time
+                  if (editIndex == 3) tempAlarm.buddyEnabled = true;
               }
           } else {
               // Move to next sub-field
@@ -135,8 +135,11 @@ void loop() {
             // Determine number of subfields
             int count = 1;
             if (editIndex == 0) count = 2;    // time: hour + minute
-            if (editIndex == 1 && alarms[selectedAlarmIndex].tempCond != COND_OFF)
-                count = 2;                    // temp: cond + value
+            // use the temporary alarm being edited so changes to condition immediately expose the value subfield
+            if (editIndex == 1 && tempAlarm.tempCond != COND_OFF)
+              count = 2;                    // temp: cond + value
+            // Buddy has two subfields (hour + minute)
+            if (editIndex == 3) count = 2;
 
             if (subIndex >= count) {
                 // exit edit mode
@@ -147,10 +150,14 @@ void loop() {
           screenDirty = true;
       }
 
-    if (steps != 0) {
+          if (steps != 0) {
         if (editIndex == -1) {
             // moving the cursor while not editing
-            cursorIndex = (cursorIndex + steps) % 5;
+            // wrap within 0..4
+            int maxIdx = 4;
+            int r = (cursorIndex + steps) % (maxIdx + 1);
+            if (r < 0) r += (maxIdx + 1);
+            cursorIndex = r;
         } else {
             // editing the selected field on the selected alarm
             editAlarmField(editIndex, subIndex, steps);
@@ -158,6 +165,22 @@ void loop() {
         screenDirty = true;
     }
   }
+
+    // touch actions: detect rising edge
+    if (touchPressed) {
+      if (uiState == UI_ALARM_EDIT && editIndex == -1 && cursorIndex == 3) {
+        // disable buddy instantly
+        tempAlarm.buddyEnabled = false;
+        screenDirty = true;
+      }
+      if (uiState == UI_ALARM_LIST && cursorIndex > 0) {
+        // touch on an alarm in the list -> ask for confirmation to delete
+        selectedAlarmIndex = cursorIndex - 1;
+        uiState = UI_ALARM_DELETE_CONFIRM;
+        cursorIndex = 0;
+        screenDirty = true;
+      }
+    }
 
   if (uiState == UI_ALARM_LIST) {
 
@@ -198,6 +221,38 @@ void loop() {
     }
   }
 
+  if (uiState == UI_ALARM_DELETE_CONFIRM) {
+    if (steps != 0) {
+      cursorIndex = constrain(cursorIndex + steps, 0, 1);
+      screenDirty = true;
+    }
+
+    if (clicked) {
+      if (cursorIndex == 0) {
+        // YES — delete selected alarm
+        if (selectedAlarmIndex >= 0 && selectedAlarmIndex < alarms.size()) {
+          alarms.erase(alarms.begin() + selectedAlarmIndex);
+        }
+        // clamp selection
+        if (alarms.empty()) {
+          uiState = UI_ALARM_LIST;
+          cursorIndex = 0;
+          selectedAlarmIndex = 0;
+        } else {
+          if (selectedAlarmIndex >= (int)alarms.size()) selectedAlarmIndex = alarms.size()-1;
+          uiState = UI_ALARM_LIST;
+          cursorIndex = 0;
+        }
+      } else {
+        // NO -> go back to list
+        uiState = UI_ALARM_LIST;
+        cursorIndex = 0;
+      }
+
+      screenDirty = true;
+    }
+  }
+
   if (uiState == UI_WEATHER_MENU) {
     Alarm &a = tempAlarm;
 
@@ -212,14 +267,16 @@ void loop() {
         if (cursorIndex == 0) {
             // Add positive
             uiState = UI_WEATHER_PICK;
-            subIndex = 1; // positive
+      weatherPickListType = 1; // positive
             cursorIndex = 0;
+          clicked = false; // consume click so picker doesn't immediately confirm
         }
         else if (cursorIndex == 1) {
             // Add negative
             uiState = UI_WEATHER_PICK;
-            subIndex = 2; // negative
+      weatherPickListType = 2; // negative
             cursorIndex = 0;
+          clicked = false; // consume click so picker doesn't immediately confirm
         }
         else if (cursorIndex == maxIndex) {
             // Back
@@ -248,31 +305,48 @@ void loop() {
 }
 
 if (uiState == UI_WEATHER_PICK) {
+  // Carousel behavior: rotate through weatherList with the encoder; click to confirm choice
+  if (steps != 0) {
+    // wrap around
+    cursorIndex = (cursorIndex + steps) % weatherListCount;
+    if (cursorIndex < 0) cursorIndex += weatherListCount;
+    screenDirty = true;
+  }
 
-    if (steps != 0) {
-        cursorIndex = constrain(cursorIndex + steps, 0, weatherListCount);
-        screenDirty = true;
+  if (clicked) {
+    // Enter confirm screen. Save the chosen index so confirm screen can reference it.
+    weatherPickChosenIndex = cursorIndex;
+    cursorIndex = 0; // cursor in confirm = 0 => Save
+    uiState = UI_WEATHER_PICK_CONFIRM;
+    clicked = false;
+    screenDirty = true;
+  }
+}
+
+if (uiState == UI_WEATHER_PICK_CONFIRM) {
+  if (steps != 0) {
+    cursorIndex = constrain(cursorIndex + steps, 0, 1);
+    screenDirty = true;
+  }
+
+  if (clicked) {
+    if (cursorIndex == 0) {
+      // Save chosen weather into the correct list
+      int chosen = weatherPickChosenIndex;
+      if (chosen < 0 || chosen >= weatherListCount) chosen = 0;
+      WeatherCode code = weatherList[chosen];
+      if (weatherPickListType == 1)
+        tempAlarm.positive.push_back(code);
+      else
+        tempAlarm.negative.push_back(code);
     }
 
-    if (clicked) {
-        if (cursorIndex == weatherListCount) {
-            // back
-            uiState = UI_WEATHER_MENU;
-            cursorIndex = 0;
-        } else {
-            // add weather code
-            WeatherCode code = weatherList[cursorIndex];
-
-            if (subIndex == 1)
-                tempAlarm.positive.push_back(code);
-            else
-                tempAlarm.negative.push_back(code);
-
-            uiState = UI_WEATHER_MENU;
-            cursorIndex = 0;
-        }
-        screenDirty = true;
-    }
+    // Return to weather menu after saving or cancelling
+    uiState = UI_WEATHER_MENU;
+    cursorIndex = 0;
+    screenDirty = true;
+    clicked = false;
+  }
 }
 
 if (uiState == UI_WEATHER_DELETE_CONFIRM) {
@@ -317,8 +391,14 @@ if (uiState == UI_WEATHER_DELETE_CONFIRM) {
       case UI_WEATHER_PICK:
         drawWeatherPick();
         break;
+      case UI_WEATHER_PICK_CONFIRM:
+        drawWeatherPickConfirm();
+        break;
       case UI_WEATHER_DELETE_CONFIRM:
         drawWeatherDeleteConfirm();
+        break;
+      case UI_ALARM_DELETE_CONFIRM:
+        drawAlarmDeleteConfirm();
         break;
     }
     screenDirty = false;
@@ -340,46 +420,61 @@ if (uiState == UI_WEATHER_DELETE_CONFIRM) {
   displayUpdate(); //check if last interaction is longer than screen timeout (10s)
   //if it is, turn screen off
 
-  //check if any alarm should be activated
+  // check if any alarm should be activated (including buddy logic)
   for(int i = 0; i < alarms.size(); i++){
     Alarm &alarm = alarms[i];
+
+    // ORIGINAL alarm: only rings when its conditions/time match
     if(hours == alarm.hour && minutes == alarm.minute && alarm.rang == false){
-      //check if temperature condition is met
+      bool tempOk = false;
       switch(alarm.tempCond){
-        case 0:
-          alarm.active = true;
+        case COND_OFF:
+          tempOk = true;
           break;
-        case 1:
-          if(cachedTemp < alarm.tempValue){
-            alarm.active = true;
-          }
+        case COND_LT:
+          if(cachedTemp < alarm.tempValue) tempOk = true;
           break;
-        case 2:
-          if(cachedTemp > alarm.tempValue){
-            alarm.active = true;
-          }
+        case COND_GT:
+          if(cachedTemp > alarm.tempValue) tempOk = true;
+          break;
+      }
+
+      if(tempOk && checkWeather(alarm, (WeatherCode)cachedWeatherCode)){
+        // original conditions satisfied -> ring original
+        ring_alarm();
+        alarm.rang = true;
+        Serial.printf("original alarm time is %d:%d, current time is %d:%d, alarming\n", alarm.hour, alarm.minute, hours, minutes);
+        if(digitalRead(TOUCH_PIN) == HIGH){
+          alarm.active = false;
+          stop_ring();
+        }
       }
     }
 
-    if(alarm.active && checkWeather(alarm, (WeatherCode)cachedWeatherCode)){
-      ring_alarm(); //activate buzzer
-      alarm.rang = true;
-      Serial.printf("alarm time is %d:%d, current time is %d:%d, alarming\n", alarm.hour, alarm.minute, hours, minutes);
-      if(digitalRead(TOUCH_PIN) == HIGH){
-        alarm.active = false;
-        noTone(BUZZER_PIN);
+    // BUDDY alarm: rings at buddy time only if buddy enabled and original has NOT rung
+    if(alarm.buddyEnabled && hours == alarm.buddyHour && minutes == alarm.buddyMinute && alarm.buddyRang == false){
+      if(alarm.rang == false){
+        // original didn't ring earlier -> buddy must ring regardless of weather/WiFi
+        ring_alarm();
+        alarm.buddyRang = true;
+        Serial.printf("buddy alarm time is %d:%d, current time is %d:%d, alarming\n", alarm.buddyHour, alarm.buddyMinute, hours, minutes);
+        if(digitalRead(TOUCH_PIN) == HIGH){
+          stop_ring();
+        }
       }
     }
   }
 
 
-  if(hours == 0 && minutes == 0){ //reset all alarms at midnight
+  if (hours == 0 && minutes == 0){ //reset all alarms at midnight
     for(int i = 0; i < alarms.size(); i++){
       alarms[i].rang = false;
+      alarms[i].buddyRang = false;
     }
   }
 
-    
+  // update touch previous state for edge detection
+  prevTouched = touched;
 
-    
 }
+
