@@ -1,0 +1,10 @@
+Subsettings on the alarm setting screen mostly work. Time and temp condition can be set.
+Make indexes loop around - last index, turn encoder clockwise, jump over to first index
+Weather condition can't be set
+Delete and Back do not work
+Check if an alarm should be activated in the alarms array in the main loop
+UI fixes (icons, larger text, efficient space usage)
+error handling
+wifi AP mode
+web server for settings
+persistent memory
