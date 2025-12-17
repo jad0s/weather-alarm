@@ -106,15 +106,41 @@ void fetchWeather(){
   http.end();
 }
 
-bool checkWeather(const Alarm& alarm, WeatherCode current){
-  //This function checks if weather conditions for an alarm pass
-  //positive conditions are grouped with OR logic
-  //meaning at least one has to be true for the alarm to activate
-  //negative condition are grouped with AND logic
-  //meaning all of them have to be false for the alarm to activate
+// Map numeric Open-Meteo weather code into grouped WeatherIcon categories
+WeatherIcon mapWeatherCodeToIcon(int weatherCode) {
+  switch (weatherCode) {
+    case 0: return WI_CLEAR;
+    case 1: return WI_PARTLY_CLOUDY;
+    case 2: return WI_PARTLY_CLOUDY;
+    case 3: return WI_CLOUDY;
+    case 45: case 48: return WI_FOG;
+    case 51: case 53: case 55: return WI_DRIZZLE;
+    case 61: case 63: case 65: return WI_RAIN;
+    case 80: case 81: case 82: return WI_SHOWERS;
+    case 95: case 96: case 99: return WI_STORM;
+    // Snow codes often 71,73,75 etc. map to snow
+    case 71: case 73: case 75: case 77: return WI_SNOW;
+    default: return WI_UNKNOWN;
+  }
+}
 
+const char* weatherIconName(WeatherIcon icon) {
+  switch (icon) {
+    case WI_CLEAR: return "Clear";
+    case WI_PARTLY_CLOUDY: return "Partly Cloudy";
+    case WI_CLOUDY: return "Cloudy";
+    case WI_DRIZZLE: return "Drizzle";
+    case WI_RAIN: return "Rain";
+    case WI_SHOWERS: return "Showers";
+    case WI_SNOW: return "Snow";
+    case WI_STORM: return "Storm";
+    case WI_FOG: return "Fog";
+    default: return "Unknown";
+  }
+}
 
-
+bool checkWeather(const Alarm& alarm, WeatherIcon current){
+  // Positive conditions: if present, at least one must match
   if(!alarm.positive.empty()){
     bool anyPositive = false;
     for(auto c : alarm.positive){
@@ -122,11 +148,11 @@ bool checkWeather(const Alarm& alarm, WeatherCode current){
         anyPositive = true;
         break;
       }
-      if(!anyPositive) return false;
-
     }
+    if(!anyPositive) return false;
   }
 
+  // Negative conditions: if any match, the alarm should not trigger
   for(auto c : alarm.negative){
     if(c == current){
       return false;
@@ -134,5 +160,4 @@ bool checkWeather(const Alarm& alarm, WeatherCode current){
   }
 
   return true;
-
 }

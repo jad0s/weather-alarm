@@ -25,8 +25,9 @@ struct Alarm{
   bool enabled = true;
   bool rang = false;
   bool active = false;
-  std::vector<WeatherCode> positive; //OR group
-  std::vector<WeatherCode> negative; // AND group
+  // Alarm weather conditions are grouped by icon categories (OR / AND groups)
+  std::vector<WeatherIcon> positive; // OR group
+  std::vector<WeatherIcon> negative; // AND group
   // Buddy alarm: optional simple time-only alarm that rings if this alarm did NOT ring.
   bool buddyEnabled = false;
   int buddyHour = 0;

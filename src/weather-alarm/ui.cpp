@@ -4,6 +4,7 @@
 #include "weather.h"
 #include "display.h"
 #include "systemtime.h"
+#include "icons.h"
 
 UIState uiState = UI_HOME;
 bool screenDirty = false;
@@ -267,14 +268,16 @@ void drawWeatherMenu() {
             display.println("+ Add NEGATIVE");
         } else {
             int dataIndex = idx - 2; // 0.. for positive then negative
-            if (dataIndex < (int)a.positive.size()) {
+                if (dataIndex < (int)a.positive.size()) {
+                const char *name = weatherIconName(a.positive[dataIndex]);
                 char lineBuf[32];
-                snprintf(lineBuf, sizeof(lineBuf), "POS: %d", a.positive[dataIndex]);
+                snprintf(lineBuf, sizeof(lineBuf), "POS: %s", name);
                 display.println(lineBuf);
             } else if (dataIndex < (int)a.positive.size() + (int)a.negative.size()) {
                 int negIndex = dataIndex - a.positive.size();
+                const char *name = weatherIconName(a.negative[negIndex]);
                 char lineBuf[32];
-                snprintf(lineBuf, sizeof(lineBuf), "NEG: %d", a.negative[negIndex]);
+                snprintf(lineBuf, sizeof(lineBuf), "NEG: %s", name);
                 display.println(lineBuf);
             } else {
                 // Back (this happens when idx == totalItems-1)
@@ -288,12 +291,16 @@ void drawWeatherMenu() {
     display.display();
 }
 
-const WeatherCode weatherList[] = {
-    WC_CLEAR, WC_MAINLY_CLEAR, WC_PARTLY_CLOUDY, WC_OVERCAST,
-    WC_FOG, WC_RIME_FOG, WC_DRIZZLE_LIGHT, WC_DRIZZLE_MOD,
-    WC_DRIZZLE_DENSE, WC_RAIN_SLIGHT, WC_RAIN_MOD, WC_RAIN_HEAVY,
-    WC_SHOWER_SLIGHT, WC_SHOWER_MOD, WC_SHOWER_VIOLENT,
-    WC_STORM, WC_STORM_HAIL_SLIGHT, WC_STORM_HAIL_HEAVY
+const WeatherIcon weatherList[] = {
+    WI_CLEAR,
+    WI_PARTLY_CLOUDY,
+    WI_CLOUDY,
+    WI_FOG,
+    WI_DRIZZLE,
+    WI_RAIN,
+    WI_SHOWERS,
+    WI_SNOW,
+    WI_STORM
 };
 
 const int weatherListCount = sizeof(weatherList)/sizeof(weatherList[0]);
@@ -303,29 +310,51 @@ void drawWeatherPick() {
     display.clearDisplay();
 
     // main large item
-    int idx = constrain(cursorIndex, 0, weatherListCount - 1);
-    WeatherCode mainCode = weatherList[idx];
-    WeatherCode nextCode = weatherList[(idx + 1) % weatherListCount];
+        int idx = constrain(cursorIndex, 0, weatherListCount - 1);
+        WeatherIcon mainIcon = weatherList[idx];
+        WeatherIcon nextIcon = weatherList[(idx + 1) % weatherListCount];
 
-    display.setTextSize(3);
-    // center the big number roughly
-    display.setCursor(10, 6);
-    // show numeric code for now (user will replace with icons later)
-    char buf[8];
-    snprintf(buf, sizeof(buf), "%d", (int)mainCode);
-    display.println(buf);
+        // draw large icon (32x32) at left/center
+        const unsigned char* mainPtr = nullptr;
+        switch(mainIcon){
+            case WI_CLEAR: mainPtr = icon_clear_32; break;
+            case WI_PARTLY_CLOUDY: mainPtr = icon_partly_cloudy_32; break;
+            case WI_CLOUDY: mainPtr = icon_cloudy_32; break;
+            case WI_DRIZZLE: mainPtr = icon_drizzle_32; break;
+            case WI_RAIN: mainPtr = icon_rain_32; break;
+            case WI_SHOWERS: mainPtr = icon_showers_32; break;
+            case WI_SNOW: mainPtr = icon_snow_32; break;
+            case WI_STORM: mainPtr = icon_storm_32; break;
+            case WI_FOG: mainPtr = icon_fog_32; break;
+            default: mainPtr = icon_unknown_32; break;
+        }
+        if(mainPtr) display.drawBitmap(10, 6, mainPtr, 32, 32, 1);
 
-    // show next small on right
-    display.setTextSize(1);
-    display.setCursor(84, 12);
-    display.print("->");
-    display.setCursor(94, 12);
-    display.println((int)nextCode);
+        // draw small next icon on right (16x16)
+        const unsigned char* nextPtr = nullptr;
+        switch(nextIcon){
+            case WI_CLEAR: nextPtr = icon_clear_16; break;
+            case WI_PARTLY_CLOUDY: nextPtr = icon_partly_cloudy_16; break;
+            case WI_CLOUDY: nextPtr = icon_cloudy_16; break;
+            case WI_DRIZZLE: nextPtr = icon_drizzle_16; break;
+            case WI_RAIN: nextPtr = icon_rain_16; break;
+            case WI_SHOWERS: nextPtr = icon_showers_16; break;
+            case WI_SNOW: nextPtr = icon_snow_16; break;
+            case WI_STORM: nextPtr = icon_storm_16; break;
+            case WI_FOG: nextPtr = icon_fog_16; break;
+            default: nextPtr = icon_unknown_16; break;
+        }
+        if(nextPtr) display.drawBitmap(94, 20, nextPtr, 16, 16, 1);
 
-    // instruction/footer
+    // footer: show the name of the currently-selected condition (single-line)
     display.setTextSize(1);
     display.setCursor(0, 52);
-    display.println("Click: choose    Wheel: rotate");
+    char nameBuf[21];
+    const char* namePtr = weatherIconName(mainIcon);
+    int i = 0;
+    for (; i < 20 && namePtr[i]; ++i) nameBuf[i] = namePtr[i];
+    nameBuf[i] = '\0';
+    display.println(nameBuf);
 
     display.display();
 }
@@ -335,10 +364,25 @@ void drawWeatherPickConfirm() {
     display.setTextSize(2);
     display.setCursor(0, 6);
     char buf[16];
-    // display the currently-selected weather code saved in 'weatherPickChosenIndex'
-    int chosenIdx = constrain(weatherPickChosenIndex, 0, weatherListCount - 1);
-    snprintf(buf, sizeof(buf), "Code %d", (int)weatherList[chosenIdx]);
-    display.println(buf);
+        // display the currently-selected weather icon and name
+        int chosenIdx = constrain(weatherPickChosenIndex, 0, weatherListCount - 1);
+        WeatherIcon chosen = weatherList[chosenIdx];
+        const unsigned char* chosenPtr = nullptr;
+        switch(chosen){
+            case WI_CLEAR: chosenPtr = icon_clear_16; break;
+            case WI_PARTLY_CLOUDY: chosenPtr = icon_partly_cloudy_16; break;
+            case WI_CLOUDY: chosenPtr = icon_cloudy_16; break;
+            case WI_DRIZZLE: chosenPtr = icon_drizzle_16; break;
+            case WI_RAIN: chosenPtr = icon_rain_16; break;
+            case WI_SHOWERS: chosenPtr = icon_showers_16; break;
+            case WI_SNOW: chosenPtr = icon_snow_16; break;
+            case WI_STORM: chosenPtr = icon_storm_16; break;
+            case WI_FOG: chosenPtr = icon_fog_16; break;
+            default: chosenPtr = icon_unknown_16; break;
+        }
+        if(chosenPtr) display.drawBitmap(0, 6, chosenPtr, 16, 16, 1);
+        display.setCursor(20, 8);
+        display.println(weatherIconName(chosen));
 
     // Buttons
     display.setTextSize(1);

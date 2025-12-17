@@ -37,8 +37,32 @@ extern unsigned long lastFetch;
 
 struct Alarm;
 
+// Grouped, display-friendly weather icon categories
+enum WeatherIcon {
+    WI_CLEAR,
+    WI_PARTLY_CLOUDY,
+    WI_CLOUDY,
+    WI_DRIZZLE,
+    WI_RAIN,
+    WI_SHOWERS,
+    WI_SNOW,
+    WI_STORM,
+    WI_FOG,
+    WI_UNKNOWN,
+    WI_COUNT
+};
+
+// Fetch current weather and populate cached* globals
 void fetchWeather();
-bool checkWeather(const Alarm& alarm, WeatherCode current);
+
+// Map raw Open-Meteo weather code to a grouped `WeatherIcon`
+WeatherIcon mapWeatherCodeToIcon(int weatherCode);
+
+// Human-readable name for icons (useful in UI lists)
+const char* weatherIconName(WeatherIcon icon);
+
+// Evaluate whether an alarm's weather conditions match the current weather.
+bool checkWeather(const Alarm& alarm, WeatherIcon current);
 
 
 

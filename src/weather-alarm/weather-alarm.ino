@@ -46,7 +46,6 @@ void setup() {
   defaultAlarm.enabled = true;
   alarms.push_back(defaultAlarm);
   initWiFi();
-  int WiFiMillis = millis();
   initTime();
   updateTime();  
   initBuzzer();
@@ -57,7 +56,8 @@ void setup() {
   loading = false; //after all loading is done, terminate the animation task.
   display.clearDisplay();
   display.display();
-  displayTouched();
+  display.ssd1306_command(SSD1306_DISPLAYON);
+  screenOn = true;
 }
 
 void loop() {
@@ -97,6 +97,11 @@ void loop() {
 
   if(touched || clicked || steps != 0){
     displayTouched();
+    if(!screenOn){
+      touched = false;
+      clicked = false;
+      steps = 0;
+    }
   }
 
     if (uiState == UI_ALARM_EDIT) {
@@ -173,7 +178,12 @@ void loop() {
         tempAlarm.buddyEnabled = false;
         screenDirty = true;
       }
-      if (uiState == UI_ALARM_LIST && cursorIndex > 0) {
+      if (uiState == UI_ALARM_LIST && cursorIndex == 0) {
+        // Touching the '+ Add alarm' entry should act like a Back/Home button
+        uiState = UI_HOME;
+        cursorIndex = 0;
+        screenDirty = true;
+      } else if (uiState == UI_ALARM_LIST && cursorIndex > 0) {
         // touch on an alarm in the list -> ask for confirmation to delete
         selectedAlarmIndex = cursorIndex - 1;
         uiState = UI_ALARM_DELETE_CONFIRM;
@@ -331,14 +341,14 @@ if (uiState == UI_WEATHER_PICK_CONFIRM) {
 
   if (clicked) {
     if (cursorIndex == 0) {
-      // Save chosen weather into the correct list
+      // Save chosen weather icon into the correct list
       int chosen = weatherPickChosenIndex;
       if (chosen < 0 || chosen >= weatherListCount) chosen = 0;
-      WeatherCode code = weatherList[chosen];
+      WeatherIcon icon = weatherList[chosen];
       if (weatherPickListType == 1)
-        tempAlarm.positive.push_back(code);
+        tempAlarm.positive.push_back(icon);
       else
-        tempAlarm.negative.push_back(code);
+        tempAlarm.negative.push_back(icon);
     }
 
     // Return to weather menu after saving or cancelling
@@ -439,7 +449,7 @@ if (uiState == UI_WEATHER_DELETE_CONFIRM) {
           break;
       }
 
-      if(tempOk && checkWeather(alarm, (WeatherCode)cachedWeatherCode)){
+      if(tempOk && checkWeather(alarm, mapWeatherCodeToIcon(cachedWeatherCode))){
         // original conditions satisfied -> ring original
         ring_alarm();
         alarm.rang = true;

@@ -19,7 +19,7 @@ extern int selectedAlarmIndex;
 extern int editIndex;
 extern int subIndex;
 extern const int weatherListCount;
-extern const WeatherCode weatherList[];
+extern const WeatherIcon weatherList[];
 extern int weatherPickListType; // 1 = positive, 2 = negative
 extern int weatherPickChosenIndex; // index chosen in the weatherList carousel
 
